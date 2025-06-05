@@ -1,0 +1,1 @@
+export const PRECISION_FACTOR = 1e18;

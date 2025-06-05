@@ -1,0 +1,300 @@
+"use client"
+
+import { useState } from "react"
+import { Search, TrendingUp } from "lucide-react"
+import SearchResults from "./search-results"
+import TrendingPosts from "./trending-posts"
+import { mockTrendingPosts } from "@/lib/mock-data"
+
+export default function ExploreContent() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchType, setSearchType] = useState<"posts" | "users">("posts")
+  const [isSearching, setIsSearching] = useState(false)
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    setIsSearching(query.length > 0)
+  }
+
+  return (
+    <div className="space-y-4 py-4">
+      {/* Header */}
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+        <div className="border-b border-gray-800 p-4">
+          <h1 className="text-xl font-bold">Explore</h1>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search OpenEcho..."
+              className="w-full rounded-full bg-gray-800/50 py-3 pl-12 pr-4 text-sm outline-none placeholder:text-gray-500 focus:bg-gray-800/70 focus:ring-2 focus:ring-blue-500/50"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Search Type Toggle */}
+          {isSearching && (
+            <div className="mt-4 flex rounded-lg bg-gray-800/30 p-1">
+              <button
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  searchType === "posts"
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-400 hover:bg-gray-700/50 hover:text-gray-300"
+                }`}
+                onClick={() => setSearchType("posts")}
+              >
+                Posts
+              </button>
+              <button
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  searchType === "users"
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-400 hover:bg-gray-700/50 hover:text-gray-300"
+                }`}
+                onClick={() => setSearchType("users")}
+              >
+                Users
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      {isSearching ? (
+        <SearchResults query={searchQuery} type={searchType} />
+      ) : (
+        <>
+          {/* Trending Section */}
+          <div className="rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+            <div className="border-b border-gray-800 p-4">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5 text-orange-400" />
+                <h2 className="text-lg font-bold">Trending Now</h2>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="grid gap-3">
+                {[
+                  { topic: "#OpenEcho", posts: "12.5K posts", category: "Technology" },
+                  { topic: "#Web3", posts: "8.2K posts", category: "Technology" },
+                  { topic: "#Decentralized", posts: "5.7K posts", category: "Technology" },
+                  { topic: "#Blockchain", posts: "4.3K posts", category: "Technology" },
+                  { topic: "#Privacy", posts: "3.1K posts", category: "Technology" },
+                ].map((trend, index) => (
+                  <div key={index} className="cursor-pointer rounded-lg p-3 transition-colors hover:bg-gray-800/50">
+                    <p className="text-xs text-gray-500">Trending in {trend.category}</p>
+                    <p className="font-bold text-blue-400">{trend.topic}</p>
+                    <p className="text-xs text-gray-500">{trend.posts}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Trending Posts */}
+          <TrendingPosts posts={mockTrendingPosts} />
+        </>
+      )}
+    </div>
+  )
+}
+
+
+"use client"
+
+import { useState, useEffect } from "react"
+import { Search } from "lucide-react"
+import Post from "./post"
+import UserCard from "./user-card"
+import type { Post as PostType, User } from "@/lib/types"
+import { mockPosts, users } from "@/lib/mock-data"
+
+interface SearchResultsProps {
+  query: string
+  type: "posts" | "users"
+}
+
+export default function SearchResults({ query, type }: SearchResultsProps) {
+  const [results, setResults] = useState<(PostType | User)[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([])
+      return
+    }
+
+    setLoading(true)
+
+    // Simulate search delay
+    const searchTimeout = setTimeout(() => {
+      if (type === "posts") {
+        // Search posts by content
+        const filteredPosts = mockPosts.filter(
+          (post) =>
+            post.content.toLowerCase().includes(query.toLowerCase()) ||
+            post.user.name.toLowerCase().includes(query.toLowerCase()) ||
+            post.user.username.toLowerCase().includes(query.toLowerCase()),
+        )
+        setResults(filteredPosts)
+      } else {
+        // Search users by name or username
+        const filteredUsers = users.filter(
+          (user) =>
+            user.name.toLowerCase().includes(query.toLowerCase()) ||
+            user.username.toLowerCase().includes(query.toLowerCase()) ||
+            (user.bio && user.bio.toLowerCase().includes(query.toLowerCase())),
+        )
+        setResults(filteredUsers)
+      }
+      setLoading(false)
+    }, 300)
+
+    return () => clearTimeout(searchTimeout)
+  }, [query, type])
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-8 text-center backdrop-blur-sm">
+        <div className="flex items-center justify-center space-x-2 text-gray-400">
+          <Search className="h-5 w-5 animate-pulse" />
+          <span>Searching...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (results.length === 0) {
+    return (
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-8 text-center backdrop-blur-sm">
+        <Search className="mx-auto mb-4 h-12 w-12 text-gray-600" />
+        <h3 className="mb-2 text-lg font-medium text-gray-300">No results found</h3>
+        <p className="text-gray-500">Try searching for something else or check your spelling.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4 backdrop-blur-sm">
+        <h3 className="font-medium text-gray-300">
+          {results.length} {type === "posts" ? "posts" : "users"} found for "{query}"
+        </h3>
+      </div>
+
+      {type === "posts" ? (
+        <div className="space-y-4">
+          {(results as PostType[]).map((post) => (
+            <div key={post.id} className="rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+              <Post post={post} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {(results as User[]).map((user) => (
+            <div key={user.id} className="rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+              <UserCard user={user} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+"use client"
+
+import Post from "./post"
+import type { Post as PostType } from "@/lib/types"
+
+interface TrendingPostsProps {
+  posts: PostType[]
+}
+
+export default function TrendingPosts({ posts }: TrendingPostsProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4 backdrop-blur-sm">
+        <h2 className="text-lg font-bold">Trending Posts</h2>
+        <p className="text-sm text-gray-500">Most popular posts right now</p>
+      </div>
+
+      <div className="space-y-4">
+        {posts.map((post) => (
+          <div key={post.id} className="rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+            <Post post={post} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+"use client"
+
+import { useState } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { CheckCircle } from "lucide-react"
+import type { User } from "@/lib/types"
+import { cn } from "@/lib/utils"
+
+interface UserCardProps {
+  user: User
+}
+
+export default function UserCard({ user }: UserCardProps) {
+  const [isFollowing, setIsFollowing] = useState(user.following || false)
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing)
+  }
+
+  return (
+    <div className="p-4 transition-colors hover:bg-gray-800/30">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Link href={`/profile/${user.username}`} className="flex-shrink-0">
+            <Image
+              src={user.avatar || "/placeholder.svg"}
+              alt={user.name}
+              width={48}
+              height={48}
+              className="h-12 w-12 rounded-full"
+            />
+          </Link>
+          <div className="flex-1">
+            <div className="flex items-center space-x-1">
+              <Link href={`/profile/${user.username}`} className="font-bold hover:underline">
+                {user.name}
+              </Link>
+              {user.verified && <CheckCircle className="h-4 w-4 text-blue-400" />}
+            </div>
+            <p className="text-sm text-gray-500">@{user.username}</p>
+            {user.bio && <p className="mt-1 text-sm text-gray-300">{user.bio}</p>}
+          </div>
+        </div>
+
+        <button
+          onClick={handleFollow}
+          className={cn(
+            "rounded-full px-4 py-1.5 text-sm font-bold transition-colors",
+            isFollowing
+              ? "border border-gray-600 text-gray-300 hover:border-red-600 hover:bg-red-600/10 hover:text-red-400"
+              : "bg-white text-black hover:bg-gray-200",
+          )}
+        >
+          {isFollowing ? "Following" : "Follow"}
+        </button>
+      </div>
+    </div>
+  )
+}
